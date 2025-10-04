@@ -2,7 +2,8 @@ export const mockContributorData = {
   contributor: {
     name: "Alex Chen",
     avatar: "AC",
-    email: "alex.chen@example.com"
+    email: "alex.chen@example.com",
+    credibilityScore: 87
   },
   issue: {
     number: 1247,
