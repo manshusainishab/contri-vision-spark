@@ -1,94 +1,194 @@
 import { MetricCard } from "@/components/MetricCard";
-import { TimeTrackingChart } from "@/components/TimeTrackingChart";
 import { LinesOfCodeChart } from "@/components/LinesOfCodeChart";
 import { ContributionTable } from "@/components/ContributionTable";
 import { CircularScore } from "@/components/CircularScore";
 import { IssueOverview } from "@/components/IssueOverview";
-import { mockContributorData } from "@/data/mockData";
-import { Clock, FileCode, GitCommit, TrendingUp } from "lucide-react";
+import { TimeCommitChart } from "@/components/TimeCommitChart";
+import { Clock, FileCode, GitCommit } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
 
 const Index = () => {
-  const { contributor, issue, metrics, timeTracking, linesOfCode, contributions } = mockContributorData;
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Example mock data
+        const json = {
+          "_id": "68e19e45f97bb9fbd15ec54f",
+          "contributor": {
+            "name": "Unknown",
+            "avatar": "",
+            "email": "",
+            "credibilityScore": 0
+          },
+          "issue": {
+            "number": 3,
+            "title": "issue-3",
+            "status": "open",
+            "repository": "",
+            "assignedDate": "2025-10-04T22:23:01.614Z",
+            "totalCommits": 4
+          },
+          "metrics": {
+            "timeSpent": "",
+            "linesChanged": 32,
+            "filesModified": 5,
+            "commits": 4,
+            "additions": 32,
+            "deletions": 10
+          },
+          "linesOfCode": [
+            { "commit": "38453b8", "additions": 5, "deletions": 0 },
+            { "commit": "afcc6ee", "additions": 0, "deletions": 5 },
+            { "commit": "9f72b63", "additions": 5, "deletions": 5 },
+            { "commit": "b6d08b0", "additions": 22, "deletions": 0 }
+          ],
+          "contributions": [
+            { "id": "38453b8", "commit": "38453b8", "message": "new-commit", "date": "2025-10-05 00:08:11 +0530", "additions": 5, "deletions": 0, "files": 1 },
+            { "id": "afcc6ee", "commit": "afcc6ee", "message": "new-commit", "date": "2025-10-05 00:07:10 +0530", "additions": 0, "deletions": 5, "files": 1 },
+            { "id": "9f72b63", "commit": "9f72b63", "message": "new-commit", "date": "2025-10-05 00:06:58 +0530", "additions": 5, "deletions": 5, "files": 1 },
+            { "id": "b6d08b0", "commit": "b6d08b0", "message": "new-commit", "date": "2025-10-05 00:06:32 +0530", "additions": 22, "deletions": 0, "files": 4 }
+          ],
+          "timeTracking": [],
+          "__v": 0
+        };
+
+        setData(json);
+      } catch (err) {
+        console.error("Error fetching API data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return <p className="p-8 text-muted-foreground">Loading dashboard...</p>;
+  if (!data) return <p className="p-8 text-red-500">No data found.</p>;
+
+  const { contributor, issue, metrics, timeTracking, linesOfCode, contributions } = data;
+
+  // ✅ Aggregate commits per day
+  const commitsPerDay = [];
+  if (contributions && contributions.length > 0) {
+    const grouped = {};
+    contributions.forEach(item => {
+      const date = new Date(item.date).toLocaleDateString("en-IN");
+      if (!grouped[date]) {
+        grouped[date] = { date, commits: 0, hours: 0 };
+      }
+      grouped[date].commits += 1;
+    });
+
+    // (Optional) Merge time tracking if available
+    if (timeTracking && timeTracking.length > 0) {
+      timeTracking.forEach(t => {
+        const date = new Date(t.date).toLocaleDateString("en-IN");
+        if (grouped[date]) grouped[date].hours += t.hours || 0;
+      });
+    }
+
+    commitsPerDay.push(...Object.values(grouped));
+  }
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
       {/* Header */}
-      <header className="mb-8 flex items-center justify-between">
+      <header className="mb-8 flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="gradient-text">Contributor Dashboard</span>
-          </h1>
+          <h1 className="text-4xl font-bold mb-2 gradient-text">Issue Dashboard</h1>
           <p className="text-muted-foreground">Real-time metrics and insights</p>
         </div>
-        <div className="flex items-center gap-4 glass-card px-6 py-3">
-          <CircularScore score={contributor.credibilityScore} />
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-primary/30">
-              <AvatarFallback className="bg-primary/20 text-primary font-semibold">
-                {contributor.avatar}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold text-sm">{contributor.name}</p>
-              <p className="text-xs text-muted-foreground">{contributor.email}</p>
+
+        {contributor && (
+          <div className="flex items-center gap-4 glass-card px-6 py-3">
+            {typeof contributor.credibilityScore === "number" && (
+              <CircularScore score={88} />
+            )}
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border-2 border-primary/30">
+                <AvatarFallback className="bg-primary/20 text-primary font-semibold">
+                  {contributor?.avatar || contributor?.name?.[0] || "?"}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold text-sm">{contributor?.name || "Unknown"}</p>
+                <p className="text-xs text-muted-foreground">{contributor?.email || "—"}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Issue Overview */}
-      <div className="mb-8">
-        <IssueOverview
-          issueNumber={issue.number}
-          title={issue.title}
-          status={issue.status}
-          repository={issue.repository}
-          assignedDate={issue.assignedDate}
-          totalCommits={issue.totalCommits}
-        />
-      </div>
+      {issue && (
+        <div className="mb-8">
+          <IssueOverview
+            issueNumber={issue.number}
+            title={issue.title}
+            status={issue.status}
+            repository={issue.repository || ""}
+            assignedDate={new Date(issue.assignedDate).toLocaleDateString("en-IN")}
+            totalCommits={issue.totalCommits}
+          />
+        </div>
+      )}
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <MetricCard
-          title="Time Spent"
-          value={metrics.timeSpent}
-          icon={Clock}
-          trend="+12.5% from last week"
-          trendUp={true}
-        />
-        <MetricCard
-          title="Lines Changed"
-          value={metrics.linesChanged.toLocaleString()}
-          icon={FileCode}
-          trend={`+${metrics.additions} -${metrics.deletions}`}
-          trendUp={true}
-        />
-        <MetricCard
-          title="Files Modified"
-          value={metrics.filesModified}
-          icon={FileCode}
-          trend="Across 3 modules"
-          trendUp={true}
-        />
-        <MetricCard
-          title="Total Commits"
-          value={metrics.commits}
-          icon={GitCommit}
-          trend="+8.3% from average"
-          trendUp={true}
-        />
-      </div>
+      {metrics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {metrics.timeSpent && (
+            <MetricCard
+              title="Time Spent"
+              value={metrics.timeSpent}
+              icon={Clock}
+              trend="+12.5% from last week"
+              trendUp={true}
+            />
+          )}
+          <MetricCard
+            title="Lines Changed"
+            value={metrics.linesChanged?.toLocaleString() ?? 0}
+            icon={FileCode}
+            trend={`+${metrics.additions ?? 0} -${metrics.deletions ?? 0}`}
+            trendUp={true}
+          />
+          <MetricCard
+            title="Files Modified"
+            value={metrics.filesModified ?? 0}
+            icon={FileCode}
+            trend="Across multiple files"
+            trendUp={true}
+          />
+          <MetricCard
+            title="Total Commits"
+            value={metrics.commits ?? 0}
+            icon={GitCommit}
+            trend="+8.3% from average"
+            trendUp={true}
+          />
+        </div>
+      )}
 
-      {/* Charts */}
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <TimeTrackingChart data={timeTracking} />
-        <LinesOfCodeChart data={linesOfCode} />
+        {linesOfCode && linesOfCode.length > 0 && (
+          <LinesOfCodeChart data={linesOfCode} />
+        )}
+
+        {/* ✅ New Commits per Day Graph */}
+        {commitsPerDay.length > 0 && (
+          <TimeCommitChart data={commitsPerDay} />
+        )}
       </div>
 
-      {/* Detailed Contributions Table */}
-      <ContributionTable data={contributions} />
+      {/* Contributions Table */}
+      {contributions && contributions.length > 0 && (
+        <ContributionTable data={contributions} />
+      )}
     </div>
   );
 };
