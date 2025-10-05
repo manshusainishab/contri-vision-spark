@@ -7,55 +7,18 @@ import { TimeCommitChart } from "@/components/TimeCommitChart";
 import { Clock, FileCode, GitCommit } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
 const Index = () => {
+  const { id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Example mock data
-        const json = {
-          "_id": "68e19e45f97bb9fbd15ec54f",
-          "contributor": {
-            "name": "Unknown",
-            "avatar": "",
-            "email": "",
-            "credibilityScore": 0
-          },
-          "issue": {
-            "number": 3,
-            "title": "issue-3",
-            "status": "open",
-            "repository": "",
-            "assignedDate": "2025-10-04T22:23:01.614Z",
-            "totalCommits": 4
-          },
-          "metrics": {
-            "timeSpent": "",
-            "linesChanged": 32,
-            "filesModified": 5,
-            "commits": 4,
-            "additions": 32,
-            "deletions": 10
-          },
-          "linesOfCode": [
-            { "commit": "38453b8", "additions": 5, "deletions": 0 },
-            { "commit": "afcc6ee", "additions": 0, "deletions": 5 },
-            { "commit": "9f72b63", "additions": 5, "deletions": 5 },
-            { "commit": "b6d08b0", "additions": 22, "deletions": 0 }
-          ],
-          "contributions": [
-            { "id": "38453b8", "commit": "38453b8", "message": "new-commit", "date": "2025-10-05 00:08:11 +0530", "additions": 5, "deletions": 0, "files": 1 },
-            { "id": "afcc6ee", "commit": "afcc6ee", "message": "new-commit", "date": "2025-10-05 00:07:10 +0530", "additions": 0, "deletions": 5, "files": 1 },
-            { "id": "9f72b63", "commit": "9f72b63", "message": "new-commit", "date": "2025-10-05 00:06:58 +0530", "additions": 5, "deletions": 5, "files": 1 },
-            { "id": "b6d08b0", "commit": "b6d08b0", "message": "new-commit", "date": "2025-10-05 00:06:32 +0530", "additions": 22, "deletions": 0, "files": 4 }
-          ],
-          "timeTracking": [],
-          "__v": 0
-        };
-
+        const res = await fetch(`http://localhost:3000/${id}`);
+        const json = await res.json();
         setData(json);
       } catch (err) {
         console.error("Error fetching API data:", err);
@@ -63,8 +26,9 @@ const Index = () => {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+
+    if (id) fetchData();
+  }, [id]);
 
   if (loading) return <p className="p-8 text-muted-foreground">Loading dashboard...</p>;
   if (!data) return <p className="p-8 text-red-500">No data found.</p>;
